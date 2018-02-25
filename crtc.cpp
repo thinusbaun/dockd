@@ -49,12 +49,12 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
     Ini config;
 
     switch (state) {
-    case DOCKED:
-        config.readIni(CONFIG_LOCATION_DOCKED);
-        break;
-    case UNDOCKED:
-        config.readIni(CONFIG_LOCATION_UNDOCKED);
-        break;
+        case DOCKED:
+            config.readIni(CONFIG_LOCATION_DOCKED);
+            break;
+        case UNDOCKED:
+            config.readIni(CONFIG_LOCATION_UNDOCKED);
+            break;
     }
 
 
@@ -75,14 +75,13 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
     int matched = 0;
 
     for (int i = 0; i < resources->ncrtc; i++) {
-        RRCrtc *rrCrtc = (resources->crtcs + i);
+        RRCrtc* rrCrtc = (resources->crtcs + i);
         for (IniSection* section : configControllers) {
             RRCrtc crtc = (RRCrtc) section->getInt("crtc");
             if (*rrCrtc == crtc) {
                 matched++;
             }
         }
-
     }
 
     if (matched != resources->ncrtc) {
@@ -101,14 +100,14 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
      * output mode specified in the configuration file
      */
 
-    for (IniSection *configSection : configControllers) {
+    for (IniSection* configSection : configControllers) {
 
         /*
          * Get the stored outputs in the configuration
          * file and check if there are any, if there are
          * not we don't really need to configure anything
          */
-        vector<const char *> configOutputNames = configSection->getStringArray("outputs");
+        vector<const char*> configOutputNames = configSection->getStringArray("outputs");
 
         OutputConfigs configs;
         configs.mode = None;
@@ -131,14 +130,14 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
             break;
         }
 
-        CRTConfig *crtcConfig = new CRTConfig;
+        CRTConfig* crtcConfig = new CRTConfig;
 
         crtcConfig->crtc = (RRCrtc) configSection->getInt("crtc");
         crtcConfig->x = configSection->getInt("x");
         crtcConfig->y = configSection->getInt("y");
         crtcConfig->mode = configs.mode;
         crtcConfig->rotation = (Rotation) configSection->getInt("rotation");
-        crtcConfig->outputs = (RROutput *) calloc(configs.outputs.size(), sizeof(RROutput));
+        crtcConfig->outputs = (RROutput*) calloc(configs.outputs.size(), sizeof(RROutput));
         crtcConfig->noutputs = configs.outputs.size();
 
         for (size_t i = 0; i < crtcConfig->noutputs; i++) {
@@ -146,7 +145,6 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
         }
 
         controllerConfigs.push_back(crtcConfig);
-
     }
 
     /* Apply the configs */
@@ -158,7 +156,7 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
 
     XGrabServer(display);
 
-    for (CRTConfig *controller : controllerConfigs) {
+    for (CRTConfig* controller : controllerConfigs) {
 
         syslog(LOG_INFO, "Applying config to %4lu: mode: %4lu, outputs: %4zu, x: %4d, y: %4d\n",
                controller->crtc, controller->mode, controller->noutputs, controller->x, controller->y);
@@ -180,7 +178,6 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
 
         free(controller->outputs);
         delete controller;
-
     }
 
     XUngrabServer(display);
@@ -189,7 +186,7 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
 
     /* Step 4 */
 
-    IniSection *screenSection = config.getSection("Screen");
+    IniSection* screenSection = config.getSection("Screen");
 
     int width = screenSection->getInt("width");
     int height = screenSection->getInt("height");
@@ -210,7 +207,6 @@ bool CRTControllerManager::applyConfiguration(CRTControllerManager::DockState st
     XSync(display, 0);
 
     return true;
-
 }
 
 bool CRTControllerManager::writeConfigToDisk(CRTControllerManager::DockState state)
@@ -239,7 +235,7 @@ bool CRTControllerManager::writeConfigToDisk(CRTControllerManager::DockState sta
     int mm_width = DisplayWidthMM(display, screen);
     int mm_height = DisplayHeightMM(display, screen);
 
-    IniSection *screen = new IniSection("Screen");
+    IniSection* screen = new IniSection("Screen");
 
     screen->setInt("height", height);
     screen->setInt("width", width);
@@ -252,10 +248,10 @@ bool CRTControllerManager::writeConfigToDisk(CRTControllerManager::DockState sta
 
     for (int i = 0; i < resources->ncrtc; i++) {
 
-        IniSection *section = new IniSection("CRTC");
+        IniSection* section = new IniSection("CRTC");
 
-        RRCrtc *crtc = (resources->crtcs + i);
-        XRRCrtcInfo *info = XRRGetCrtcInfo(display, resources, *crtc);
+        RRCrtc* crtc = (resources->crtcs + i);
+        XRRCrtcInfo* info = XRRGetCrtcInfo(display, resources, *crtc);
 
         /* Set basic info */
         section->setInt("crtc", (int) *crtc);
@@ -276,7 +272,7 @@ bool CRTControllerManager::writeConfigToDisk(CRTControllerManager::DockState sta
         // the mode is active, find name
         if (!modeFound) {
             for (int j = 0; j < resources->nmode; j++) {
-                XRRModeInfo *mode = (resources->modes + j);
+                XRRModeInfo* mode = (resources->modes + j);
                 if (info->mode == mode->id) {
                     section->setString("mode", mode->name);
                     modeFound = true;
@@ -294,14 +290,14 @@ bool CRTControllerManager::writeConfigToDisk(CRTControllerManager::DockState sta
         vector<const char*> names;
 
         for (int k = 0; k < info->noutput; k++) {
-            RROutput *output = (info->outputs + k);
-            XRROutputInfo *info = XRRGetOutputInfo(display, resources, *output);
+            RROutput* output = (info->outputs + k);
+            XRROutputInfo* info = XRRGetOutputInfo(display, resources, *output);
 
             /* XRROutputInfo goes out of scope here,
              * we need to copy the string to the heap,
              * add it to the ini and free it later
              */
-            char *name_st = (char*) calloc(strlen(info->name) + 1, sizeof(char));
+            char* name_st = (char*) calloc(strlen(info->name) + 1, sizeof(char));
             strcpy(name_st, info->name);
             names.push_back(name_st);
 
@@ -310,29 +306,28 @@ bool CRTControllerManager::writeConfigToDisk(CRTControllerManager::DockState sta
 
         section->setStringArray("outputs", &names);
 
-        for (const char *ptr : names) {
-            free((void*)ptr);
+        for (const char* ptr : names) {
+            free((void*) ptr);
         }
 
         ini.addSection(section);
 
         XRRFreeCrtcInfo(info);
-
     }
 
     /* Step 4 */
 
     switch (state) {
-    case DOCKED:
-        return ini.writeIni(CONFIG_LOCATION_DOCKED);
-    case UNDOCKED:
-        return ini.writeIni(CONFIG_LOCATION_UNDOCKED);
+        case DOCKED:
+            return ini.writeIni(CONFIG_LOCATION_DOCKED);
+        case UNDOCKED:
+            return ini.writeIni(CONFIG_LOCATION_UNDOCKED);
     }
-
 }
 
-CRTControllerManager::OutputConfigs CRTControllerManager::getOutputConfigs(vector<const char *> *configOutputNames,
-                                                                           IniSection *configSection) {
+CRTControllerManager::OutputConfigs CRTControllerManager::getOutputConfigs(vector<const char*>* configOutputNames,
+                                                                           IniSection* configSection)
+{
 
     OutputConfigs configs;
     configs.mode = None;
@@ -345,7 +340,7 @@ CRTControllerManager::OutputConfigs CRTControllerManager::getOutputConfigs(vecto
         return configs;
     }
 
-    for (const char *configOutput : *configOutputNames) {
+    for (const char* configOutput : *configOutputNames) {
 
         RROutput output;
         int attempts = 0;
@@ -375,7 +370,7 @@ CRTControllerManager::OutputConfigs CRTControllerManager::getOutputConfigs(vecto
 
         RRMode configMode;
         attempts = 0;
-        const char *configOutputMode = configSection->getString("mode");
+        const char* configOutputMode = configSection->getString("mode");
 
         while ((configMode = getRRModeByNameSupported(configOutputMode, output)) == ((XID) -EAGAIN)) {
 
@@ -396,7 +391,6 @@ CRTControllerManager::OutputConfigs CRTControllerManager::getOutputConfigs(vecto
             resources = XRRGetScreenResources(display, window);
 
             attempts++;
-
         }
 
         if (configMode == None) {
@@ -413,8 +407,6 @@ CRTControllerManager::OutputConfigs CRTControllerManager::getOutputConfigs(vecto
             configs.mode = None;
             return configs;
         }
-
-
     }
 
     if (configs.mode == None && configs.outputs.size() > 0) {
@@ -422,12 +414,12 @@ CRTControllerManager::OutputConfigs CRTControllerManager::getOutputConfigs(vecto
     }
 
     return configs;
-
 }
 
-bool CRTControllerManager::isOutputModeSupported(RROutput output, RRMode mode) {
+bool CRTControllerManager::isOutputModeSupported(RROutput output, RRMode mode)
+{
 
-    XRROutputInfo *outputInfo = XRRGetOutputInfo(display, resources, output);
+    XRROutputInfo* outputInfo = XRRGetOutputInfo(display, resources, output);
 
     for (int i = 0; i < outputInfo->nmode; i++) {
         RRMode temp = *(outputInfo->modes + i);
@@ -439,10 +431,10 @@ bool CRTControllerManager::isOutputModeSupported(RROutput output, RRMode mode) {
 
     XRRFreeOutputInfo(outputInfo);
     return false;
-
 }
 
-void CRTControllerManager::connectToX() {
+void CRTControllerManager::connectToX()
+{
 
     display = XOpenDisplay(NULL);
 
@@ -460,11 +452,10 @@ void CRTControllerManager::connectToX() {
         syslog(LOG_ERR, "Failed to get resources!\n");
         exit(EXIT_FAILURE);
     }
-
-
 }
 
-void CRTControllerManager::disconnectFromX() {
+void CRTControllerManager::disconnectFromX()
+{
 
     if (display) {
         XCloseDisplay(display);
@@ -473,14 +464,14 @@ void CRTControllerManager::disconnectFromX() {
     if (resources) {
         XRRFreeScreenResources(resources);
     }
-
 }
 
-RROutput CRTControllerManager::getRROutputByName(const char *outputName) {
+RROutput CRTControllerManager::getRROutputByName(const char* outputName)
+{
 
     for (int i = 0; i < resources->noutput; i++) {
         RROutput rrOutput = *(resources->outputs + i);
-        XRROutputInfo *outputInfo = XRRGetOutputInfo(display, resources, rrOutput);
+        XRROutputInfo* outputInfo = XRRGetOutputInfo(display, resources, rrOutput);
 
         if (strcmp(outputInfo->name, outputName) == 0) {
 
@@ -497,26 +488,22 @@ RROutput CRTControllerManager::getRROutputByName(const char *outputName) {
         }
 
         XRRFreeOutputInfo(outputInfo);
-
     }
 
     return None;
-
 }
 
-RRMode CRTControllerManager::getRRModeByNameSupported(const char *modeName, RROutput output)
+RRMode CRTControllerManager::getRRModeByNameSupported(const char* modeName, RROutput output)
 {
     for (int i = 0; i < resources->nmode; i++) {
 
-        XRRModeInfo *modeInfo = (resources->modes + i);
+        XRRModeInfo* modeInfo = (resources->modes + i);
 
         if (strcmp(modeName, modeInfo->name) == 0) {
             if (isOutputModeSupported(output, modeInfo->id)) {
                 return modeInfo->id;
             }
-
         }
-
     }
 
     /*
@@ -527,5 +514,4 @@ RRMode CRTControllerManager::getRRModeByNameSupported(const char *modeName, RROu
      */
 
     return -EAGAIN;
-
 }

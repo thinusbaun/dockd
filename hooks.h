@@ -3,8 +3,8 @@
 
 class Hooks {
 public:
-	void executeUndockHook();
-	void executeDockHook();
+    void executeUndockHook();
+    void executeDockHook();
 };
 
 #endif

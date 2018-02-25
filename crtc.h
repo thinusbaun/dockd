@@ -14,19 +14,18 @@ using ThinkPad::Utilities::Ini::IniSection;
 typedef struct _crtc {
 
     RRCrtc crtc;
-    XRRCrtcInfo *info;
+    XRRCrtcInfo* info;
 
 } crtc_t;
 
 class CRTControllerManager {
 
 private:
-
-    Display *display;
+    Display* display;
     int screen;
     Window window;
 
-    XRRScreenResources *resources;
+    XRRScreenResources* resources;
 
     class CRTConfig {
     public:
@@ -34,7 +33,7 @@ private:
         int x, y;
         RRMode mode;
         Rotation rotation;
-        RROutput *outputs;
+        RROutput* outputs;
         size_t noutputs;
     };
 
@@ -46,18 +45,19 @@ private:
     };
 
 
-    OutputConfigs getOutputConfigs(vector<const char *> *vector, IniSection *pSection);
+    OutputConfigs getOutputConfigs(vector<const char*>* vector, IniSection* pSection);
     bool isOutputModeSupported(RROutput pInfo, RRMode pOutputInfo);
     void connectToX();
     void disconnectFromX();
-    RROutput getRROutputByName(const char *outputName);
-    RRMode getRRModeByNameSupported(const char *getString, RROutput i);
+    RROutput getRROutputByName(const char* outputName);
+    RRMode getRRModeByNameSupported(const char* getString, RROutput i);
 
 public:
-
     enum DockState {
 
-        DOCKED, UNDOCKED, INVALID
+        DOCKED,
+        UNDOCKED,
+        INVALID
 
     };
 
@@ -66,7 +66,6 @@ public:
 
     bool applyConfiguration(DockState state);
     bool writeConfigToDisk(DockState state);
-
 };
 
 

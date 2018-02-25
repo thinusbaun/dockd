@@ -1,6 +1,8 @@
-#include <stdio.h>
 #include <cstring>
+#include <signal.h>
+#include <stdio.h>
 #include <syslog.h>
+#include <usb.h>
 
 #include "crtc.h"
 #include "hooks.h"
@@ -8,11 +10,11 @@
 
 #define VERSION "1.21"
 
+using ThinkPad::Hardware::Dock;
 using ThinkPad::PowerManagement::ACPI;
 using ThinkPad::PowerManagement::ACPIEvent;
 using ThinkPad::PowerManagement::ACPIEventHandler;
 using ThinkPad::Utilities::Versioning;
-using ThinkPad::Hardware::Dock;
 
 class ACPIHandler : public ACPIEventHandler {
 
@@ -26,19 +28,20 @@ public:
     void handleEvent(ACPIEvent event);
 };
 
-void ACPIHandler::handleEvent(ACPIEvent event) {
+void ACPIHandler::handleEvent(ACPIEvent event)
+{
 
-    switch(event) {
+    switch (event) {
         case ACPIEvent::DOCKED:
             pthread_mutex_lock(&mutex);
             manager.applyConfiguration(CRTControllerManager::DockState::DOCKED);
-	    hooks.executeDockHook();
+            hooks.executeDockHook();
             pthread_mutex_unlock(&mutex);
             break;
         case ACPIEvent::UNDOCKED:
             pthread_mutex_lock(&mutex);
             manager.applyConfiguration(CRTControllerManager::DockState::UNDOCKED);
-	    hooks.executeUndockHook();
+            hooks.executeUndockHook();
             pthread_mutex_unlock(&mutex);
             break;
         case ACPIEvent::POWER_S3S4_EXIT:
@@ -58,10 +61,10 @@ void ACPIHandler::handleEvent(ACPIEvent event) {
 
             pthread_mutex_unlock(&mutex);
     }
-
 }
 
-int startDaemon() {
+int startDaemon()
+{
 
     openlog("dockd", LOG_NDELAY | LOG_PID, LOG_DAEMON);
 
@@ -74,10 +77,10 @@ int startDaemon() {
     acpi.wait();
 
     closelog();
-
 }
 
-int showHelp() {
+int showHelp()
+{
     printf("Usage: dockd [OPERAND] [?ARGUMENT]\n"
            "\n"
            "    dockd --help                        - show this help dialog\n"
@@ -86,7 +89,8 @@ int showHelp() {
            "    dockd --daemon                      - start the dock daemon\n");
 }
 
-int writeConfig(const char *state) {
+int writeConfig(const char* state)
+{
 
     CRTControllerManager::DockState dockState = CRTControllerManager::DockState::INVALID;
 
@@ -106,13 +110,14 @@ int writeConfig(const char *state) {
     CRTControllerManager manager;
     if (manager.writeConfigToDisk(dockState)) {
         printf("config file written to %s\n",
-               dockState == CRTControllerManager::DockState::DOCKED ? CONFIG_LOCATION_DOCKED : CONFIG_LOCATION_UNDOCKED);
-
+               dockState == CRTControllerManager::DockState::DOCKED
+               ? CONFIG_LOCATION_DOCKED
+               : CONFIG_LOCATION_UNDOCKED);
     }
-
 }
 
-int applyConfig(const char *state) {
+int applyConfig(const char* state)
+{
 
     CRTControllerManager::DockState dockState = CRTControllerManager::DockState::INVALID;
 
@@ -132,28 +137,60 @@ int applyConfig(const char *state) {
     CRTControllerManager manager;
     if (manager.applyConfiguration(dockState)) {
         printf("config applied from %s\n",
-               dockState == CRTControllerManager::DockState::DOCKED ? CONFIG_LOCATION_DOCKED : CONFIG_LOCATION_UNDOCKED);
-
+               dockState == CRTControllerManager::DockState::DOCKED
+               ? CONFIG_LOCATION_DOCKED
+               : CONFIG_LOCATION_UNDOCKED);
     }
-
 }
 
-int main(int argc, char *argv[])
+void signal_callback_handler(int signum)
+{
+    printf("caught signal %d\n", signum);
+    bool isDocked = false;
+    struct usb_bus* bus;
+    struct usb_bus* busses;
+    struct usb_device* device;
+    usb_init();
+    usb_find_busses();
+    usb_find_devices();
+    busses = usb_get_busses();
+    for (bus = busses; bus; bus = bus->next) {
+        for (device = bus->devices; device; device = device->next) {
+            if (device->descriptor.idVendor == 0x17ef && device->descriptor.idProduct == 0x100a) {
+                isDocked = true;
+            }
+        }
+    }
+
+    if (isDocked) {
+        printf("docked\n");
+        applyConfig("docked");
+    } else {
+        printf("undocked\n");
+        applyConfig("undocked");
+    }
+}
+
+int main(int argc, char* argv[])
 {
 
     if (argc == 1) {
-      printf("dockd " VERSION " (libthinkpad %d.%d)\n"
-            "Copyright (C) 2017 The Thinkpads.org Team\n"
-            "License: FreeBSD License (BSD 2-Clause) <https://www.freebsd.org/copyright/freebsd-license.html>.\n"
-            "This is free software: you are free to change and redistribute it.\n"
-            "There is NO WARRANTY, to the extent permitted by law.\n"
-            "\n\n"
-            "Written by Ognjen Galic\n"
-            "See --help for more information\n", Versioning::getMajorVersion(), Versioning::getMinorVersion());
+        printf(
+        "dockd " VERSION " (libthinkpad %d.%d)\n"
+        "Copyright (C) 2017 The Thinkpads.org Team\n"
+        "License: FreeBSD License (BSD 2-Clause) "
+        "<https://www.freebsd.org/copyright/freebsd-license.html>.\n"
+        "This is free software: you are free to change and redistribute it.\n"
+        "There is NO WARRANTY, to the extent permitted by law.\n"
+        "\n\n"
+        "Written by Ognjen Galic\n"
+        "See --help for more information\n",
+        Versioning::getMajorVersion(), Versioning::getMinorVersion());
         return EXIT_SUCCESS;
     }
 
     if (strcmp(argv[1], "--daemon") == 0) {
+        signal(SIGUSR1, signal_callback_handler);
         return startDaemon();
     }
 
@@ -169,7 +206,6 @@ int main(int argc, char *argv[])
         }
 
         return writeConfig(argv[2]);
-
     }
 
     if (strcmp(argv[1], "--set") == 0) {
@@ -180,11 +216,9 @@ int main(int argc, char *argv[])
         }
 
         return applyConfig(argv[2]);
-
     }
 
     fprintf(stderr, "Unknown option: %s. See --help\n", argv[1]);
 
     return EXIT_FAILURE;
-
 }
